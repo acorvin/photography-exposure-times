@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Holding Still: how rare is a slow shutter? Tens of thousands of everyday photographs against Alex Corvin's slow-shutter work. A data study by Alex Corvin.">
+<title>Holding Still</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..800&family=Geist+Mono:wght@300..500&display=swap">
+<style>
+/* Corv Studio shell (Geist, square edges) in its dark tokens: the charts are a darkroom.
+   Layout: one reading column; a photograph first, then each section is a claim, one chart, and the figure behind it. */
+:root{
+  color-scheme:dark;
+  --bg:#121212; --panel:#171717; --ink:#ffffff; --ink-2:#aaaaaa; --ink-3:#808080; --rule:#2a2a2a; --grid:#1f1f1f;
+  --camera:#b8893a; --mobile:#4f8fd6; --own:#c062a8; --slow:#1b1b1b;
+  --f-body:"Geist",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-data:"Geist Mono",ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font-family:var(--f-body);font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration-color:var(--ink-3);text-underline-offset:3px}
+a:hover{text-decoration-color:var(--ink)}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:16px}
+header.wrap{padding-top:40px;padding-bottom:20px}
+.eyebrow{font-family:var(--f-data);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:0}
+h1{font-weight:800;font-size:clamp(44px,8vw,84px);line-height:.95;letter-spacing:-.02em;margin:12px 0 10px}
+.subtitle{font-weight:500;font-size:clamp(20px,2.8vw,28px);line-height:1.2;color:var(--ink-2);margin:0;max-width:34ch;text-wrap:balance}
+.hero{margin:0 0 8px}
+.hero img{display:block;width:100%;height:auto;max-height:82vh;object-fit:contain;background:#000}
+.hero figcaption{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 16px;font-family:var(--f-data);font-size:12px;color:var(--ink-3);padding-top:8px}
+.hero figcaption i{font-family:var(--f-body)}
+.lede{max-width:62ch;color:var(--ink-2);margin:22px 0 4px;font-size:18px}
+h2{font-weight:700;font-size:clamp(22px,3vw,30px);line-height:1.15;margin:0 0 8px;text-wrap:balance;max-width:30ch}
+h3{font-weight:700;font-size:17px;margin:0 0 4px}
+section{padding-block:34px;border-top:1px solid var(--rule)}
+section > p{max-width:64ch;color:var(--ink-2);margin:0 0 16px}
+.big{font-family:var(--f-data);font-size:clamp(40px,7vw,72px);line-height:1;letter-spacing:-.02em;color:var(--ink);margin:6px 0 4px}
+.big-note{font-size:15px;color:var(--ink-2);margin:0 0 18px;max-width:52ch}
+.num{font-family:var(--f-data);color:var(--ink)}
+
+.chart{position:relative;width:100%}
+.chart canvas,.chart svg{position:absolute;inset:0;display:block}
+.chart svg text{font-family:var(--f-data);font-size:11px;fill:var(--ink-3)}
+.chart svg .lab{font-family:var(--f-body);font-size:12px;fill:var(--ink);paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round}
+.chart svg .lab.sub{fill:var(--ink-2);font-size:11px}
+.strip-title{display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin:16px 0 4px;font-size:14px;color:var(--ink-2)}
+.strip-title b{color:var(--ink);font-weight:600}
+.empty{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-family:var(--f-data);font-size:12px;color:var(--ink-3);text-align:center;pointer-events:none;width:90%}
+
+.legend{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:14px;color:var(--ink-2);margin:0 0 10px}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.legend i{display:inline-block;width:14px;height:3px;background:var(--c)}
+.legend i.ring{width:12px;height:12px;border:2px solid var(--c);background:none;border-radius:50%}
+
+.tip{position:absolute;z-index:5;pointer-events:none;background:var(--panel);border:1px solid var(--rule);padding:9px 11px;font-size:13px;line-height:1.45;max-width:260px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.tip .k{font-family:var(--f-data);font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em}
+.tip .v{font-family:var(--f-data);font-size:15px;color:var(--ink)}
+.tip p{margin:3px 0 0;color:var(--ink-2)}
+.tip img{display:block;width:100%;height:auto;margin:0 0 8px}
+
+/* Alex's photographs */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:22px 16px;margin-top:18px;align-items:start}
+.card{min-width:0}
+.card img{display:block;width:100%;height:auto;background:#000}
+.card .no{font-family:var(--f-data);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin-top:10px}
+.card .t{font-weight:600;margin:2px 0 8px}
+.card .x{font-family:var(--f-data);font-size:28px;line-height:1}
+.card .meta{font-size:13px;color:var(--ink-3);margin-top:4px}
+.card .pos{position:relative;height:6px;background:#242424;margin:12px 0 6px}
+.card .pos span{position:absolute;inset:0 auto 0 0;background:#3a3a3a}
+.card .pos b{position:absolute;top:-4px;width:2px;height:14px;background:var(--own)}
+.card .rank{font-size:14px;color:var(--ink-2)}
+
+.sources{width:100%;border-collapse:collapse;font-size:14px}
+.sources th{text-align:left;font-family:var(--f-data);font-weight:400;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);border-bottom:1px solid var(--rule);padding:8px 10px 8px 0}
+.sources td{vertical-align:top;border-bottom:1px solid var(--rule);padding:10px 10px 10px 0;color:var(--ink-2)}
+.sources td:first-child{color:var(--ink);white-space:nowrap;font-family:var(--f-data)}
+.sources td .q{display:block;font-size:13px;color:var(--ink-3);margin-top:3px}
+.sources td .note{display:block;font-size:13px;color:var(--ink-3);margin-top:6px;font-style:italic}
+.table-scroll{overflow-x:auto}
+details{margin-top:18px}
+summary{cursor:pointer;color:var(--ink-2);font-size:15px}
+summary:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.method p,.method li{color:var(--ink-2);max-width:68ch}
+.method ul{padding-left:1.1em}
+footer.wrap{padding-block:24px 48px;border-top:1px solid var(--rule);font-size:13px;color:var(--ink-3)}
+@media (max-width:640px){ body{font-size:16px} .sources td:first-child{white-space:normal} }
+</style>
+</head>
+<body>
+<header class="wrap">
+  <p class="eyebrow">A data study by Alex Corvin</p>
+  <h1>Holding Still</h1>
+  <p class="subtitle">How rare is a slow shutter?</p>
+</header>
+
+<main class="wrap">
+<figure class="hero" id="hero" hidden>
+  <img id="hero-img" alt="">
+  <figcaption><span id="hero-title"></span><span id="hero-meta"></span></figcaption>
+</figure>
+<p class="lede" id="lede">A photograph holds whatever happens while the shutter is open, and I usually leave mine open for about a tenth of a second, which is long enough for someone walking past to smear across the frame. I wanted to know how unusual that actually is, and since every digital photograph stores its own shutter speed, I used a Python script to read the shutter speeds of about 60,000 photographs on Wikimedia Commons.</p>
+
+<section aria-labelledby="s1" style="border-top:0">
+  <h2 id="s1">Where everyday photographs fall</h2>
+  <p>Each point on this chart is a single photograph, placed according to how long its shutter stayed open. The fast exposures on the left are drawn sharp and the slow ones on the right are drawn soft, the way a slow shutter would render them, and the shaded area marks the speeds where most of my own work sits.</p>
+  <div class="big" id="s1-big">–</div>
+  <p class="big-note" id="s1-note"></p>
+  <div class="legend"><span style="--c:var(--camera)"><i></i>Photographs in the sample</span><span style="--c:var(--own)" id="own-key" hidden><i class="ring"></i>My photographs</span></div>
+  <div class="chart" id="strip-all" role="img" aria-label="Distribution of shutter speeds in the sample, with Alex Corvin's photographs marked above it."></div>
+</section>
+
+<section aria-labelledby="s2">
+  <h2 id="s2">Cameras stay on the shutter dial, while phones choose any speed they like</h2>
+  <p id="s2-text">Here the same photographs are split by the kind of device that took them. Camera exposures pile up in bright lines at the fixed speeds marked on a shutter dial, such as 1/60, 1/125 and 1/250, while phone exposures spread out into a haze because a phone is free to pick any value in between.</p>
+  <div class="strip-title"><span><b>Dedicated cameras</b></span><span id="s2-cam"></span></div>
+  <div class="chart" id="strip-cam" role="img" aria-label="Shutter speeds of photographs taken with dedicated cameras."></div>
+  <div class="strip-title"><span><b>Phones and tablets</b></span><span id="s2-mob"></span></div>
+  <div class="chart" id="strip-mob" role="img" aria-label="Shutter speeds of photographs taken with phones and tablets."></div>
+</section>
+
+<section aria-labelledby="s3">
+  <h2 id="s3">Slow photographs have become rarer</h2>
+  <p id="s3-text">This chart shows the share of each year’s photographs that were taken at the slow end, for cameras and for phones.</p>
+  <div class="legend"><span style="--c:var(--camera)"><i></i>Dedicated cameras</span><span style="--c:var(--mobile)"><i></i>Phones and tablets</span></div>
+  <div class="chart" id="trend" role="img" aria-label="Share of slow exposures by year, for cameras and phones."></div>
+</section>
+
+<section aria-labelledby="s4">
+  <h2 id="s4">It used to take hours</h2>
+  <p>Before digital cameras, photographs didn’t carry their shutter speed with them, so what we know about early exposures comes from museums, archives and camera makers. Each row here is one documented exposure, and where the sources disagree, the bar stretches to cover both figures. The shaded band shows where nine out of ten photographs in the sample fall.</p>
+  <div class="chart" id="history" role="img" aria-label="Documented exposure times from 1827 to 2019 on a scale from a microsecond to a year."></div>
+  <details><summary>Sources for each documented exposure</summary>
+    <div class="table-scroll"><table class="sources" id="sources"><thead><tr><th>Year</th><th>Photograph or process</th><th>Exposure</th><th>Sources</th></tr></thead><tbody></tbody></table></div>
+  </details>
+</section>
+
+<section aria-labelledby="s5">
+  <h2 id="s5">Here is where each of my photographs sits</h2>
+  <p id="s5-text">Under each is its shutter speed and how many photographs in the sample were faster.</p>
+  <div class="cards" id="cards"></div>
+</section>
+
+<section aria-labelledby="m" class="method">
+  <h2 id="m">How I put this together, and where it falls short</h2>
+  <div id="method"></div>
+</section>
+</main>
+
+<footer class="wrap"><p id="credit">Photographs © Alex Corvin. Code and data: <a href="https://github.com/acorvin/photography-exposure-times">github.com/acorvin/photography-exposure-times</a>.</p></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script>
+(async function(){
+"use strict";
+const css = getComputedStyle(document.documentElement);
+const C = { camera: css.getPropertyValue('--camera').trim(), mobile: css.getPropertyValue('--mobile').trim(),
+            own: css.getPropertyValue('--own').trim(), bg: css.getPropertyValue('--bg').trim() };
+
+let data;
+try { data = await (await fetch('data.json', {cache:'no-cache'})).json(); }
+catch(e){ document.getElementById('s1-big').textContent = 'The data could not be loaded.'; return; }
+const H = data.history || [], P = data.photos, M = data.meta || {};
+const OWN = (data.own || []).filter(o => o.role !== 'hero'), HERO_PHOTO = (data.own || []).find(o => o.role === 'hero');
+const hasPhotos = !!(P && P.e && P.e.length);
+const A = (M.eras && M.eras.all) || null;
+const SLOW = M.slowS || 1/13, SLOW_LABEL = M.slowLabel || '1/13 s';
+
+/* ---------- formatting ---------- */
+const nf = d3.format(',');
+const pct = v => v == null ? '–' : (v > 0 && v < 0.01 ? '<1%' : v > 0.99 && v < 1 ? '>99%' : Math.round(v*100) + '%');
+function fmtExposure(s){
+  if (s < 1e-5) return (+(s*1e6).toPrecision(2)) + ' µs';
+  if (s < 1 && Math.abs(1/s - Math.round(1/s)) < 0.02 * (1/s)) return '1/' + nf(Math.round(1/s)) + ' s';
+  if (s < 0.3) return '1/' + nf(Math.round(1/s)) + ' s';
+  if (s < 60) return (+s.toPrecision(2)) + ' s';
+  if (s < 3600) return (+(s/60).toPrecision(2)) + ' min';
+  if (s < 172800) return (+(s/3600).toPrecision(2)) + ' h';
+  return nf(Math.round(s/86400)) + ' days';
+}
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const dateGB = d => new Date(d + 'T00:00:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});
+// Titles are "Series — Name" (e.g. "Frames / No. 01 — Stone’s Throw", "Between Here — Directions") or a single title.
+const splitTitle = t => { const p = (t || '').split(' — '); return p.length > 1 ? { series: p[0], name: p.slice(1).join(' — ') } : { series: '', name: t || '' }; };
+const seriesHTML = s => esc(s).replace(/^(Frames|Between Here)/, '<i>$1</i>');
+const titleHTML = t => { const { series, name } = splitTitle(t); return series ? `${seriesHTML(series)} — <i>${esc(name)}</i>` : name ? `<i>${esc(name)}</i>` : 'Untitled'; };
+const titleText = t => t ? `${t}, photograph by Alex Corvin` : 'Photograph by Alex Corvin';
+
+/* ---------- shared exposure axis for the strips ---------- */
+const E0 = 1/8000, E1 = 30;
+const TICKS = [[1/8000,'1/8000'],[1/1000,'1/1000'],[1/250,'1/250'],[1/60,'1/60'],[1/15,'1/15'],[1/4,'1/4'],[1,'1 s'],[4,'4 s'],[30,'30 s']];
+const clampE = s => Math.max(E0, Math.min(E1, s));
+
+// deterministic jitter so the cloud doesn't reshuffle on resize
+const JIT = (() => { if (!hasPhotos) return []; let x = 1827; return P.e.map(() => { x = (x * 1103515245 + 12345) % 2147483648; return x / 2147483648; }); })();
+
+const LEVELS = 8;
+function sprites(color, dpr){
+  const rgb = d3.rgb(color), out = [];
+  for (let k = 0; k < LEVELS; k++){
+    const r = (1.0 + k * 1.0) * dpr, s = Math.ceil(r * 2 + 2), c = document.createElement('canvas');
+    c.width = c.height = s;
+    const g = c.getContext('2d'), grd = g.createRadialGradient(s/2, s/2, 0, s/2, s/2, r);
+    grd.addColorStop(0, `rgba(${rgb.r},${rgb.g},${rgb.b},1)`);
+    grd.addColorStop(Math.max(0.05, 0.5 - k * 0.06), `rgba(${rgb.r},${rgb.g},${rgb.b},.8)`);
+    grd.addColorStop(1, `rgba(${rgb.r},${rgb.g},${rgb.b},0)`);
+    g.fillStyle = grd; g.fillRect(0, 0, s, s);
+    out.push({ c, s });
+  }
+  return out;
+}
+// 1/1000 s and faster -> sharp; 1 s and slower -> softest
+const level = e => Math.max(0, Math.min(LEVELS - 1, Math.round((e + 3) * (LEVELS - 1) / 3)));
+
+const tip = document.createElement('div'); tip.className = 'tip'; tip.hidden = true;
+function showTip(host, html, x, y){
+  if (tip.parentNode !== host) host.appendChild(tip);
+  tip.innerHTML = html; tip.hidden = false;
+  const W = host.clientWidth, Hh = host.clientHeight, tw = tip.offsetWidth, th = tip.offsetHeight;
+  let left = x + 14; if (left + tw > W - 4) left = x - tw - 14;
+  tip.style.left = Math.max(4, left) + 'px'; tip.style.top = Math.max(4, Math.min(Math.max(4, Hh - th - 4), y - th/2)) + 'px';
+}
+const hideTip = () => { tip.hidden = true; };
+
+/* sorted exposures per device, for "x% faster / slower" on hover */
+const sorted = { all: [], camera: [], mobile: [] };
+if (hasPhotos){
+  P.e.forEach((e, i) => { const s = Math.pow(10, e); sorted.all.push(s); (P.p[i] ? sorted.mobile : sorted.camera).push(s); });
+  Object.values(sorted).forEach(a => a.sort((p, q) => p - q));
+}
+const shareBelow = (arr, s) => arr.length ? d3.bisectLeft(arr, s * 0.99) / arr.length : null;
+
+/* ---------- strip chart ---------- */
+function strip(id, which, opts){
+  const host = document.getElementById(id);
+  host.innerHTML = '';
+  const W = host.clientWidth, narrow = W < 560;
+  const ownLane = opts.own && OWN.length ? 58 : 0;
+  const band = opts.band;
+  const m = { t: 10 + ownLane, r: 14, b: 26, l: 14 };
+  const Hh = m.t + band + m.b; host.style.height = Hh + 'px';
+  const x = d3.scaleLog([E0, E1], [m.l, W - m.r]);
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const cv = document.createElement('canvas'); cv.width = W * dpr; cv.height = Hh * dpr; cv.style.width = W + 'px'; cv.style.height = Hh + 'px';
+  host.appendChild(cv);
+  const svg = d3.select(host).append('svg').attr('width', W).attr('height', Hh).attr('viewBox', `0 0 ${W} ${Hh}`);
+  svg.append('rect').attr('x', x(SLOW)).attr('y', m.t).attr('width', W - m.r - x(SLOW)).attr('height', band).attr('fill', '#ffffff').attr('fill-opacity', 0.035);
+  const tk = narrow ? TICKS.filter((_, i) => i % 2 === 0) : TICKS;
+  svg.append('g').selectAll('line').data(tk).join('line').attr('x1', d => x(d[0])).attr('x2', d => x(d[0]))
+    .attr('y1', m.t).attr('y2', m.t + band).attr('stroke', 'var(--grid)');
+  svg.append('g').selectAll('text').data(tk).join('text').attr('x', d => x(d[0])).attr('y', Hh - 8)
+    .attr('text-anchor', (d, i) => i === 0 ? 'start' : i === tk.length - 1 ? 'end' : 'middle').text(d => d[1]);
+  svg.append('line').attr('x1', x(SLOW)).attr('x2', x(SLOW)).attr('y1', m.t - (ownLane ? ownLane - 6 : 0)).attr('y2', m.t + band).attr('stroke', 'var(--ink-3)').attr('stroke-dasharray', '3 3');
+  svg.append('text').attr('class', 'lab sub').attr('x', x(SLOW) + 6).attr('y', m.t + 14).text(`${SLOW_LABEL} or slower`);
+  if (!hasPhotos){
+    const e = document.createElement('div'); e.className = 'empty'; e.textContent = 'Camera records are being collected.'; host.appendChild(e);
+  } else {
+    const ctx = cv.getContext('2d'), sp = sprites(which === 'mobile' ? C.mobile : C.camera, dpr);
+    let n = 0; for (let i = 0; i < P.e.length; i++) if (which === 'all' || (which === 'mobile') === !!P.p[i]) n++;
+    const alpha = Math.max(0.004, Math.min(0.7, 2.2 * W * band / 1000 / Math.max(1, n)));
+    ctx.globalCompositeOperation = 'lighter';
+    let beyond = 0;
+    for (let i = 0; i < P.e.length; i++){
+      if (which !== 'all' && (which === 'mobile') !== !!P.p[i]) continue;
+      const s = Math.pow(10, P.e[i]);
+      if (s > E1 || s < E0){ beyond++; continue; }
+      const px = x(s), py = m.t + 6 + JIT[i] * (band - 12);
+      const k = level(P.e[i]), g = sp[k];
+      // the rare slow exposures get a floor of visibility, so each reads as its own soft glow
+      ctx.globalAlpha = Math.min(1, Math.max(alpha * (1 + k * 0.35), k >= 4 ? 0.15 : 0));
+      ctx.drawImage(g.c, px * dpr - g.s/2, py * dpr - g.s/2);
+    }
+    ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+    if (beyond) svg.append('text').attr('class', 'lab sub').attr('x', W - m.r - 4).attr('y', m.t + band - 6).attr('text-anchor', 'end')
+      .text(narrow ? `${nf(beyond)} off-scale` : `${nf(beyond)} photographs fall outside this range`);
+  }
+  // my photographs in a lane above the band
+  const ringPts = [];
+  if (ownLane){
+    const lane = svg.append('g'), stacks = {};
+    OWN.slice().sort((a, b) => a.e - b.e).forEach(o => {
+      const k = Math.round(o.e * 50); stacks[k] = (stacks[k] || 0) + 1;
+      const cx = x(clampE(Math.pow(10, o.e))), cy = m.t - 10 - (stacks[k] - 1) * 11;
+      ringPts.push({ o, cx, cy });
+      lane.append('circle').attr('cx', cx).attr('cy', cy).attr('r', 4.5).attr('fill', 'none').attr('stroke', C.own).attr('stroke-width', 2);
+    });
+    lane.append('line').attr('x1', m.l).attr('x2', W - m.r).attr('y1', m.t - 2).attr('y2', m.t - 2).attr('stroke', 'var(--rule)');
+  }
+  const arr = sorted[which];
+  const cross = svg.append('line').attr('y1', m.t).attr('y2', m.t + band).attr('stroke', 'var(--ink)').attr('opacity', 0);
+  svg.append('rect').attr('x', 0).attr('y', 0).attr('width', W).attr('height', Hh).attr('fill', 'transparent')
+    .on('pointermove', ev => {
+      const [px, py] = d3.pointer(ev);
+      const hit = ringPts.find(r => Math.hypot(r.cx - px, r.cy - py) < 8);
+      if (hit){
+        cross.attr('opacity', 0);
+        const o = hit.o;
+        return showTip(host, `${o.image ? `<img src="photos/${esc(o.image)}-sm.jpg" alt="">` : ''}<div><b>${titleHTML(o.title)}</b></div><div class="v">${esc(fmtExposure(Math.pow(10, o.e)))}</div><p>${esc(dateGB(o.captured))}${o.camera ? ' · ' + esc(o.camera) : ''}</p>`, px, py);
+      }
+      if (!hasPhotos || py < m.t || py > m.t + band){ hideTip(); cross.attr('opacity', 0); return; }
+      const s = x.invert(px), below = shareBelow(arr, s);
+      cross.attr('x1', px).attr('x2', px).attr('opacity', .6);
+      showTip(host, `<div class="v">${esc(fmtExposure(s))}</div><p>${pct(below)} of these photographs are faster than this, and ${pct(1 - below)} are as slow or slower.</p>`, px, py);
+    })
+    .on('pointerleave', () => { hideTip(); cross.attr('opacity', 0); });
+}
+
+/* ---------- trend ---------- */
+function trend(){
+  const host = document.getElementById('trend'); host.innerHTML = '';
+  const W = host.clientWidth, Hh = Math.round(Math.max(260, Math.min(380, W * 0.4))); host.style.height = Hh + 'px';
+  const minN = M.minYearCount || 200, rows = (M.byYear || []);
+  const series = [
+    { color: C.camera, pts: rows.filter(r => (r.photos_camera || 0) >= minN).map(r => ({ y: r.year, v: r.share_slow_camera, n: r.photos_camera })) },
+    { color: C.mobile, pts: rows.filter(r => (r.photos_mobile || 0) >= minN).map(r => ({ y: r.year, v: r.share_slow_mobile, n: r.photos_mobile })) },
+  ];
+  if (!hasPhotos || !series.some(s => s.pts.length)){ host.innerHTML = '<div class="empty">Camera records are being collected.</div>'; return; }
+  const all = series.flatMap(s => s.pts);
+  const m = { t: 14, r: 16, b: 28, l: 44 };
+  const x = d3.scaleLinear(d3.extent(all, d => d.y), [m.l, W - m.r]);
+  const y = d3.scaleLinear([0, Math.max(0.05, d3.max(all, d => d.v) * 1.15)], [Hh - m.b, m.t]).nice();
+  const svg = d3.select(host).append('svg').attr('width', W).attr('height', Hh).attr('viewBox', `0 0 ${W} ${Hh}`);
+  svg.append('g').selectAll('line').data(y.ticks(4)).join('line').attr('x1', m.l).attr('x2', W - m.r).attr('y1', d => y(d)).attr('y2', d => y(d)).attr('stroke', 'var(--grid)');
+  svg.append('g').selectAll('text').data(y.ticks(4)).join('text').attr('x', m.l - 8).attr('y', d => y(d) + 4).attr('text-anchor', 'end').text(d => Math.round(d * 100) + '%');
+  svg.append('g').selectAll('text').data(x.ticks(W < 560 ? 4 : 8).filter(Number.isInteger)).join('text').attr('x', d => x(d)).attr('y', Hh - 8).attr('text-anchor', 'middle').text(d => d);
+  series.forEach(s => {
+    if (!s.pts.length) return;
+    svg.append('path').datum(s.pts).attr('fill', 'none').attr('stroke', s.color).attr('stroke-width', 2).attr('d', d3.line().x(d => x(d.y)).y(d => y(d.v)));
+    const last = s.pts[s.pts.length - 1];
+    svg.append('circle').attr('cx', x(last.y)).attr('cy', y(last.v)).attr('r', 4).attr('fill', s.color).attr('stroke', C.bg).attr('stroke-width', 2);
+  });
+  const cross = svg.append('line').attr('y1', m.t).attr('y2', Hh - m.b).attr('stroke', 'var(--ink-3)').attr('opacity', 0);
+  svg.append('rect').attr('x', 0).attr('y', 0).attr('width', W).attr('height', Hh).attr('fill', 'transparent')
+    .on('pointermove', ev => {
+      const [px, py] = d3.pointer(ev), yr = Math.round(x.invert(px));
+      const c = series[0].pts.find(d => d.y === yr), p = series[1].pts.find(d => d.y === yr);
+      if (!c && !p){ hideTip(); cross.attr('opacity', 0); return; }
+      cross.attr('x1', x(yr)).attr('x2', x(yr)).attr('opacity', 1);
+      showTip(host, `<div class="k">${yr}</div>${c ? `<p><span class="num">${pct(c.v)}</span> of ${nf(c.n)} camera photos</p>` : ''}${p ? `<p><span class="num">${pct(p.v)}</span> of ${nf(p.n)} phone photos</p>` : ''}<p>at ${esc(SLOW_LABEL)} or slower</p>`, x(yr), py);
+    })
+    .on('pointerleave', () => { hideTip(); cross.attr('opacity', 0); });
+}
+
+/* ---------- history ---------- */
+function history(){
+  const host = document.getElementById('history'); host.innerHTML = '';
+  const W = host.clientWidth, narrow = W < 560, rowH = 30;
+  const rows = H.slice().sort((a, b) => a.year - b.year || b.max - a.max);
+  const m = { t: 24, r: 14, b: 26, l: narrow ? 112 : 250 };
+  const Hh = m.t + rows.length * rowH + m.b; host.style.height = Hh + 'px';
+  const x = d3.scaleLog([1e-7, 1e8], [m.l, W - m.r]);
+  const svg = d3.select(host).append('svg').attr('width', W).attr('height', Hh).attr('viewBox', `0 0 ${W} ${Hh}`);
+  const XT = narrow ? [[1e-6,'1 µs'],[1e-3,'1 ms'],[1,'1 s'],[3600,'1 h'],[31557600,'1 yr']]
+                    : [[1e-6,'1 µs'],[1e-3,'1/1000 s'],[1,'1 s'],[60,'1 min'],[3600,'1 h'],[86400,'1 day'],[31557600,'1 year']];
+  if (hasPhotos){
+    const lo = sorted.all[Math.floor(sorted.all.length * 0.05)], hi = sorted.all[Math.floor(sorted.all.length * 0.95)];
+    svg.append('rect').attr('x', x(lo)).attr('width', x(hi) - x(lo)).attr('y', m.t).attr('height', rows.length * rowH).attr('fill', C.camera).attr('opacity', .14);
+    svg.append('text').attr('class','lab sub').attr('x', (x(lo) + x(hi)) / 2).attr('y', m.t - 8).attr('text-anchor', 'middle').text('9 in 10 photographs in the sample');
+  }
+  svg.append('g').selectAll('line').data(XT).join('line').attr('x1', d => x(d[0])).attr('x2', d => x(d[0])).attr('y1', m.t).attr('y2', Hh - m.b).attr('stroke', 'var(--grid)');
+  svg.append('g').selectAll('text').data(XT).join('text').attr('x', d => x(d[0])).attr('y', Hh - 8).attr('text-anchor', 'middle').text(d => d[1]);
+  rows.forEach((h, i) => {
+    const cy = m.t + i * rowH + rowH / 2, g = svg.append('g');
+    g.append('text').attr('class', 'lab sub').attr('x', m.l - 10).attr('y', cy + 4).attr('text-anchor', 'end')
+      .text(narrow ? `${h.year} ${h.label.replace(/,.*$/, '').slice(0, 14)}` : `${h.year}  ${h.label.length > 34 ? h.label.replace(/,.*$/, '') : h.label}`);
+    if (h.max / h.min > 1.05) g.append('rect').attr('x', x(h.min)).attr('width', Math.max(3, x(h.max) - x(h.min))).attr('y', cy - 3).attr('height', 6).attr('rx', 3).attr('fill', 'var(--ink-2)');
+    else g.append('circle').attr('cx', x(h.min)).attr('cy', cy).attr('r', 4).attr('fill', 'var(--ink-2)');
+    g.append('rect').attr('x', 0).attr('y', cy - rowH/2).attr('width', W).attr('height', rowH).attr('fill', 'transparent')
+      .on('pointermove', ev => { const [px, py] = d3.pointer(ev, host);
+        showTip(host, `<div class="k">${h.year}</div><div><b>${esc(h.label)}</b></div><div class="v">${esc(h.minLabel === h.maxLabel ? h.minLabel : h.minLabel + ' to ' + h.maxLabel)}</div>${h.yearNote ? `<p>${esc(h.yearNote)}</p>` : ''}${h.note ? `<p>${esc(h.note)}</p>` : ''}<p>${h.sources.map(s => esc(s.name)).join('; ')}</p>`, px, py); })
+      .on('pointerleave', hideTip);
+  });
+  const tb = d3.select('#sources tbody'); tb.selectAll('*').remove();
+  rows.forEach(h => {
+    const tr = tb.append('tr');
+    tr.append('td').text(h.year);
+    tr.append('td').html(`${esc(h.label)}${h.yearNote ? `<span class="q">${esc(h.yearNote)}</span>` : ''}`);
+    tr.append('td').html(`${esc(h.minLabel === h.maxLabel ? h.minLabel : h.minLabel + ' to ' + h.maxLabel)}${h.note ? `<span class="note">${esc(h.note)}</span>` : ''}`);
+    tr.append('td').html(h.sources.map(s => `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)}</a><span class="q">“${esc(s.quote)}”</span>`).join('<br>'));
+  });
+}
+
+/* ---------- my photographs ---------- */
+function cards(){
+  const el = document.getElementById('cards'); el.innerHTML = '';
+  const num = o => { const m = /No\. (\d+)/.exec(o.title || ''); return m ? +m[1] : 99; };
+  OWN.slice().sort((a, b) => num(a) - num(b)).forEach(o => {
+    const s = Math.pow(10, o.e), parts = (o.title || '').split(' — ');
+    const st = splitTitle(o.title);
+    const no = st.series ? seriesHTML(st.series) : 'Single photograph';
+    const name = esc(st.name);
+    const f = o.fasterShare;
+    const pos = (Math.log(clampE(s)) - Math.log(E0)) / (Math.log(E1) - Math.log(E0)) * 100;
+    el.insertAdjacentHTML('beforeend', `<article class="card">
+      ${o.image ? `<img src="photos/${esc(o.image)}-sm.jpg" alt="${esc(titleText(o.title))}">` : ''}
+      <div class="no">${no}</div><div class="t">${name}</div>
+      <div class="x">${esc(fmtExposure(s))}</div><div class="meta">${esc(dateGB(o.captured))}${o.camera ? ' · ' + esc(o.camera) : ''}</div>
+      ${f != null ? `<div class="pos" aria-hidden="true"><span style="width:${pos}%"></span><b style="left:calc(${pos}% - 1px)"></b></div>
+      <div class="rank">It’s slower than <span class="num">${Math.floor(f * 100)}%</span> of the photographs in the sample.</div>` : ''}</article>`);
+  });
+}
+
+/* ---------- copy that depends on the data ---------- */
+function copy(){
+  const hero = HERO_PHOTO;
+  if (hero){
+    const img = document.getElementById('hero-img');
+    img.src = `photos/${hero.image}.jpg`; img.alt = titleText(hero.title);
+    document.getElementById('hero-title').innerHTML = titleHTML(hero.title);
+    document.getElementById('hero-meta').textContent = `${fmtExposure(Math.pow(10, hero.e))} · ${dateGB(hero.captured)}${hero.camera ? ' · ' + hero.camera : ''}`;
+    document.getElementById('hero').hidden = false;
+  }
+  if (OWN.length){
+    document.getElementById('own-key').hidden = false;
+    const words = ['no','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve'], w = n => words[n] || String(n);
+    const cap = x => x.charAt(0).toUpperCase() + x.slice(1);
+    const nF = OWN.filter(o => /^Frames/.test(o.title || '')).length, nB = OWN.filter(o => /^Between Here/.test(o.title || '')).length, nS = OWN.length - nF - nB;
+    const bits = [];
+    if (nF) bits.push(`${w(nF)} of these come from my <i>Frames</i> series on Substack`);
+    if (nB) bits.push(`${w(nB)} ${nB === 1 ? 'is' : 'are'} from <i>Between Here</i>`);
+    if (nS) bits.push(`${w(nS)} ${nS === 1 ? 'is a single photograph' : 'are single photographs'}`);
+    const list = bits.length > 1 ? bits.slice(0, -1).join(', ') + ', and ' + bits[bits.length - 1] : bits[0];
+    document.getElementById('s5-text').innerHTML = `${cap(list)}. Under each one you’ll find its shutter speed and the share of photographs in the sample that were faster.`;
+  }
+  if (!hasPhotos || !A){
+    document.getElementById('s1-big').textContent = 'Collecting';
+    document.getElementById('s1-note').textContent = 'The sample is still being collected.';
+    return;
+  }
+  document.getElementById('s1-big').textContent = pct(A.shareSlow);
+  document.getElementById('s1-note').innerHTML = `of the ${nf(M.photos)} photographs in the sample were taken at ${esc(SLOW_LABEL)} or slower. The median exposure was <span class="num">${esc(fmtExposure(A.quantiles['50']))}</span>, and nine out of ten were <span class="num">${esc(fmtExposure(A.quantiles['90']))}</span> or faster.`;
+  document.getElementById('s1').textContent = `Only ${pct(A.shareSlow)} of photographs are as slow as most of mine`;
+  document.getElementById('s2-text').innerHTML = `Here the same photographs are split by the kind of device that took them. Camera exposures pile up in bright lines at the fixed speeds marked on a shutter dial, such as 1/60, 1/125 and 1/250, and <span class="num">${pct(A.shareOnLadderCamera)}</span> of them fall exactly on one of those steps. Only <span class="num">${pct(A.shareOnLadderMobile)}</span> of phone exposures do, because a phone is free to pick any value in between, so its photographs spread out into a haze instead. Phones are also about half as likely as cameras to shoot slow.`;
+  const E3 = M.eras || {};
+  if (E3.p1 && E3.p3) document.getElementById('s3-text').innerHTML = `This chart shows the share of each year’s photographs that were taken at ${esc(SLOW_LABEL)} or slower. Between ${E3.p1.years[0]} and ${E3.p1.years[1]}, <span class="num">${pct(E3.p1.shareSlow)}</span> of the photographs in the sample were that slow, and between ${E3.p3.years[0]} and ${E3.p3.years[1]} the figure was <span class="num">${pct(E3.p3.shareSlow)}</span>. Phones grew from ${pct(E3.p1.shareMobile)} to ${pct(E3.p3.shareMobile)} of the sample over the same period, which accounts for part of the drop, but cameras on their own also fell from ${pct(E3.p1.shareSlowCamera)} to ${pct(E3.p3.shareSlowCamera)}. I’ve left out any year with fewer than ${nf(M.minYearCount || 200)} photographs from a given kind of device.`;
+  document.getElementById('s2-cam').innerHTML = `<span class="num">${pct(A.shareSlowCamera)}</span> at ${esc(SLOW_LABEL)} or slower · ${nf(A.photosCamera)} photos`;
+  document.getElementById('s2-mob').innerHTML = `<span class="num">${pct(A.shareSlowMobile)}</span> at ${esc(SLOW_LABEL)} or slower · ${nf(A.photosMobile)} photos`;
+}
+
+function method(){
+  const cl = M.cleaning || {};
+  document.getElementById('method').innerHTML = hasPhotos ? `
+    <p>All of the photographs come from Wikimedia Commons, a public archive of freely licensed images. I used a Python script that asked the Commons API for files at random and kept the ones whose camera data (EXIF) recorded both the date the photograph was taken and its shutter speed, which gave me ${nf(cl.collected)} photographs. I didn’t look at the images themselves, only the camera data. The script then dropped anything dated before 1990 or in the future, along with shutter speeds shorter than a millionth of a second or longer than a year, and that left ${nf(cl.plausible_exposure)}.</p>
+    <p>A few archives upload to Commons in bulk, and NASA alone had thousands of astronaut photographs of Earth taken from the International Space Station, which made up close to 40% of the slow exposures. So that no single source could tip the numbers, I kept one photograph per author per day and no more than 50 per author, which leaves ${nf(M.photos)} photographs by ${nf(cl.authors)} people. Setting that limit at 20 or at 100 gives the same results. To keep the page fast, the charts draw ${nf(M.shown)} of these photographs at random, but every percentage on the page is based on all ${nf(M.photos)}.</p>
+    <p>When I say slow, I mean ${esc(SLOW_LABEL)} or longer${OWN.length ? `, and ${OWN.filter(o => Math.pow(10, o.e) >= SLOW * 0.97).length} of the ${OWN.length} photographs of mine on this page are at least that slow` : ''}.</p>
+    <p>Commons is not a fair picture of all photography. People upload to it on purpose, so it probably holds more travel, documentary and enthusiast work than the average camera roll, and even in recent years phones make up only about a third of the sample. It also only includes people who leave their camera data in place. I separated phones from cameras using the maker and model written into each file, and because a few companies make both, that split is close but not exact. Camera clocks are also sometimes set wrong, so a photograph can end up in the wrong year.</p>
+    <p>Phones may also under-report how long they take. In Night mode a phone combines several frames into one picture, and the file can record the shutter speed of a single frame rather than the whole capture. On my iPhone 13, a low-light photograph takes about two seconds while I hold the phone still, yet the file for <i>Webb</i>, a night photograph taken with that phone, says 1/2 s. Apple itself only says that a Night mode photograph “might take several seconds.”</p>` : '<p>The sample is still being collected.</p>';
+  if (hasPhotos) document.getElementById('credit').innerHTML =
+    `Photographs © Alex Corvin. The data comes from ${nf(M.photos)} photographs on Wikimedia Commons and from the museum, archive and maker sources listed above, and the code and data are on GitHub at <a href="https://github.com/acorvin/photography-exposure-times">github.com/acorvin/photography-exposure-times</a>.`;
+}
+
+function render(){
+  const w = document.querySelector('main').clientWidth;
+  strip('strip-all', 'all', { band: w < 560 ? 150 : 210, own: true });
+  strip('strip-cam', 'camera', { band: w < 560 ? 70 : 90 });
+  strip('strip-mob', 'mobile', { band: w < 560 ? 70 : 90 });
+  trend(); history(); cards();
+}
+copy(); method(); render();
+let rt, lastW = document.querySelector('main').clientWidth;
+new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(() => { const w = document.querySelector('main').clientWidth; if (w !== lastW){ lastW = w; render(); } }, 150); }).observe(document.querySelector('main'));
+
+/* auto-height for the Squarespace iframe */
+(function(){ let last = 0; function send(){ const h = Math.ceil(document.documentElement.getBoundingClientRect().height);
+  if (h !== last){ last = h; window.parent.postMessage({ type:'photography-exposure-times-height', height:h }, '*'); } }
+  new ResizeObserver(send).observe(document.body); window.addEventListener('load', send); send(); })();
+})();
+</script>
+</body>
+</html>

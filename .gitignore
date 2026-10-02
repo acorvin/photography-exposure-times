@@ -1,0 +1,32 @@
+# Raw download (re-created by scripts/build.py)
+data/raw/
+
+# Secrets and local config
+.env
+.env.*
+*.pem
+*.key
+secrets.*
+credentials*.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+.pytest_cache/
+
+# Editors and OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Deploy tooling
+.netlify/
+.vercel/
+node_modules/
+_to_delete/
