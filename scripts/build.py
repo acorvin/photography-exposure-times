@@ -58,10 +58,19 @@ LADDER = sorted(
 MOBILE_MAKES = re.compile(
     r"^(apple|samsung|google|huawei|honor|xiaomi|redmi|poco|oneplus|motorola|lge|lg electronics"
     r"|htc|oppo|vivo|realme|nokia|hmd global|zte|asus|blackberry|fairphone|meizu|lenovo|"
-    r"microsoft|nothing|tecno|infinix|alcatel|tcl|sony ?ericsson|kyocera|sharp|bq|wiko|coolpad|nec|lg)\b",
+    r"microsoft|nothing|tecno|infinix|alcatel|tcl|sony ?ericsson|kyocera|sharp|bq|wiko|coolpad|nec|lg"
+    r"|elephone|blackview|itel|nubia|oukitel|ulefone|vodafone|gionee|crosscall|micromax|fly|yu|docomo|kddi"
+    r"|qmobile|cat|qcom|zuk|tinno|archos|mobiwire|tct|bullitt|orange|symphony|doogee|cubot|umidigi|intex"
+    r"|fcnt|homtom|prestigio|lava|explay|walton|blu|infocus|vernee|vonino|highscreen|unihertz|vsmart"
+    r"|general mobile|jiayu|iqoo|mptech|gigaset)\b",
     re.I,
 )
 SONY_PHONE = re.compile(r"xperia|^(so-|sov|sol|xq-)|^[cdefgh]\d{4}", re.I)
+# Samsung and Kyocera also sold compact and system cameras (Digimax, NX, WB, Finecam, Contax),
+# so their files count as phones only when the model name looks like a phone.
+SAMSUNG_CAMERA_MAKE = re.compile(r"techwin|digital ima", re.I)
+SAMSUNG_PHONE = re.compile(r"^(samsung[- _])?(sm-|gt-|sgh|sch|sph|shv|shw|scl|sc-\d|sc[gv]\d|sm_|sec_)|galaxy|nexus|^yp-g|^$", re.I)
+KYOCERA_CAMERA = re.compile(r"finecam|contax", re.I)
 
 
 PHONE_MODELS = re.compile(r"iphone|ipad|\bhtc\b|nokia|galaxy|\bpixel\b|redmi|xperia|lumia", re.I)
@@ -69,6 +78,10 @@ PHONE_MODELS = re.compile(r"iphone|ipad|\bhtc\b|nokia|galaxy|\bpixel\b|redmi|xpe
 
 def is_mobile(make, model):
     make, model = (make or "").strip(), (model or "").strip()
+    if make.lower().startswith("samsung"):
+        return not SAMSUNG_CAMERA_MAKE.search(make) and bool(SAMSUNG_PHONE.search(model))
+    if make.lower().startswith("kyocera"):
+        return not KYOCERA_CAMERA.search(model)
     if MOBILE_MAKES.search(make):
         return True
     if PHONE_MODELS.search(model):   # some files name the phone only in the model field

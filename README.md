@@ -18,7 +18,7 @@ Live page: https://acorvin.github.io/photography-exposure-times/
 - **Cleaning.** Duplicates removed; capture dates before 1990 or after the collection date dropped; exposures outside 1 microsecond to 1 year dropped.
 - **One photographer, one voice.** Commons holds bulk uploads from a few archives (for example, thousands of NASA astronaut photographs of Earth). The sample keeps one photograph per author per day and at most 50 per author. Caps of 20 and 100 give the same results to within a tenth of a percentage point.
 - **Slow** means 1/13 s or longer.
-- **Phones and tablets** are identified from the maker and model name (Apple, Samsung, Google, Xiaomi, Sony Ericsson and other phone makers, or a model name such as iPhone or Galaxy). Sony counts only when the model looks like an Xperia phone.
+- **Phones and tablets** are identified from the maker and model name (Apple, Samsung, Google, Xiaomi, Sony Ericsson and other phone makers, or a model name such as iPhone or Galaxy). Sony, Samsung and Kyocera also made cameras, so their files count only when the model name looks like a phone (an Xperia, or a Samsung SM-, GT- or Galaxy model).
 - **Shutter-speed steps.** An exposure counts as "on the ladder" when it is within 1% of a full- or third-stop speed (1/8000 s to 30 s).
 - **Historical bounds.** Where a source gives words rather than numbers ("several days", "a fraction of a second"), the plotted bound and the reason are recorded in the `bounds_note` column.
 
