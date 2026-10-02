@@ -34,7 +34,7 @@ TEMPLATE = ROOT / "src" / "page.template.html"
 DOCS = ROOT / "docs"
 
 SEED = 1827
-DISPLAY_MAX = 40000
+DISPLAY_MAX = None   # draw every photograph in the sample
 # "Slow" means as slow as most of Alex's own photographs (the page states how many reach it).
 SLOW_S = 1 / 13
 SLOW_LABEL = "1/13 s"
@@ -222,7 +222,7 @@ def main():
         by_year = yearly(df)
         by_year.to_csv(PROCESSED / "commons_by_year.csv", index=False, float_format="%.6g")
 
-        show = sorted(rng.sample(range(len(df)), min(DISPLAY_MAX, len(df))))
+        show = list(range(len(df))) if DISPLAY_MAX is None else sorted(rng.sample(range(len(df)), min(DISPLAY_MAX, len(df))))
         ex_rows = []   # example photos are not shown on the page
         # example photos are not shown on the page, so the chart sample stays purely random
         models = sorted({m for m in df.loc[show, "model"] if m})
