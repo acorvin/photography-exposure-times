@@ -42,6 +42,7 @@ MIN_YEAR_COUNT = 200
 MAX_PER_AUTHOR = 50   # years with fewer photos are left out of the over-time chart
 EXAMPLES_PER_BIN = 120
 MIN_YEAR = 1990
+SAMPLE_CUTOFF = "2026-10-02"   # the sample was downloaded then; later capture dates are clock errors
 MIN_EXPOSURE = 1e-6           # 1 microsecond
 MAX_EXPOSURE = 366 * 86400    # 1 year
 
@@ -65,7 +66,7 @@ MOBILE_MAKES = re.compile(
     r"|general mobile|jiayu|iqoo|mptech|gigaset)\b",
     re.I,
 )
-SONY_PHONE = re.compile(r"xperia|^(so-|sov|sol|xq-)|^[cdefgh]\d{4}", re.I)
+SONY_PHONE = re.compile(r"xperia|^(so-|sov|sol|xq-)|^sog\d|^\d{3}so\b|^(lt|st|mt|sk|wt)\d{2}|^[cdefgh]\d{4}", re.I)
 # Samsung and Kyocera also sold compact and system cameras (Digimax, NX, WB, Finecam, Contax),
 # so their files count as phones only when the model name looks like a phone.
 SAMSUNG_CAMERA_MAKE = re.compile(r"techwin|digital ima", re.I)
@@ -73,7 +74,12 @@ SAMSUNG_PHONE = re.compile(r"^(samsung[- _])?(sm-|gt-|sgh|sch|sph|shv|shw|scl|sc
 KYOCERA_CAMERA = re.compile(r"finecam|contax", re.I)
 
 
-PHONE_MODELS = re.compile(r"iphone|ipad|\bhtc\b|nokia|galaxy|\bpixel\b|redmi|xperia|lumia", re.I)
+PHONE_MODELS = re.compile(r"iphone|ipad|\bhtc\b|nokia|galaxy|\bpixel\b|redmi|xperia|lumia|leitz ?phone|\bektra\b", re.I)
+# Film scanners write EXIF too, but their "exposure" is not a photograph's shutter speed.
+SCANNER = re.compile(r"scan|wolverine|^gcmc", re.I)
+# The same NASA unit appears under two names; treat it as one author.
+AUTHOR_ALIASES = [(re.compile(r"earth science and remote sensing unit", re.I), "nasa jsc earth science and remote sensing unit")]
+
 
 
 def is_mobile(make, model):
@@ -89,6 +95,24 @@ def is_mobile(make, model):
     if make.lower().startswith("sony"):
         return bool(SONY_PHONE.search(model))
     return False
+
+
+def device(make, model):
+    """camera, phone, or unknown when the file names neither a maker nor a model."""
+    if not (make or "").strip() and not (model or "").strip():
+        return "unknown"
+    return "phone" if is_mobile(make, model) else "camera"
+
+
+def author_key(name):
+    """Normalised author used for the per-author limit; None when no author is recorded."""
+    n = " ".join((name or "").split()).casefold()
+    if not n or n.startswith(("unknown", "anonymous")):
+        return None
+    for pat, alias in AUTHOR_ALIASES:
+        if pat.search(n):
+            return alias
+    return n
 
 
 def on_ladder(s):
@@ -122,29 +146,42 @@ def clean_commons(collected_on):
     df = df[df["captured"].notna() & df["exposure_s"].notna()]
     df = df[(df["captured"].dt.year >= MIN_YEAR) & (df["captured"] <= pd.Timestamp(collected_on))]
     steps["plausible_date"] = len(df)
-    df = df[(df["exposure_s"] >= MIN_EXPOSURE) & (df["exposure_s"] <= MAX_EXPOSURE)]
+    df = df[(df["exposure_s"] > MIN_EXPOSURE) & (df["exposure_s"] <= MAX_EXPOSURE)]
     steps["plausible_exposure"] = len(df)
+    df = df[~(df["make"] + " " + df["model"]).str.strip().str.contains(SCANNER)]
+    steps["not_scanner"] = len(df)
     # Saved before the per-author limit, so the notebook can show why the limit is there.
     PROCESSED.mkdir(parents=True, exist_ok=True)
-    df.assign(author=df["artist"].str.strip())[["pageid", "captured", "exposure_s", "make", "model", "author"]] \
-        .to_csv(PROCESSED / "commons_all.csv", index=False)
+    df = df.copy()
+    df["author"] = df["artist"].map(author_key)
+    # Files with no recorded author are not one person, so each counts on its own.
+    df["author"] = df["author"].where(df["author"].notna(), "_none_" + df["pageid"])
+    df[["pageid", "captured", "exposure_s", "make", "model", "author"]].to_csv(PROCESSED / "commons_all.csv", index=False)
     # Keep the sample about many photographers, not a few archives: Commons holds bulk uploads
     # (e.g. thousands of NASA astronaut photographs). One photo per author per day, at most
     # MAX_PER_AUTHOR per author. Results barely move between caps of 20, 50 and 100.
-    df = df.copy()
-    df["author"] = df["artist"].str.strip()
+    # Figures the method note reports, so readers can see what the limit changes.
+    slow_mask = lambda d: d["exposure_s"] >= SLOW_S * 0.97
+    nasa = df["author"] == AUTHOR_ALIASES[0][1]
+    steps["nasa_rows"] = int(nasa.sum())
+    steps["nasa_share_of_slow"] = float((nasa & slow_mask(df)).sum() / max(1, slow_mask(df).sum()))
+    steps["share_slow_before_limits"] = float(slow_mask(df).mean())
     df = df.sample(frac=1, random_state=SEED)
     df["day"] = df["captured"].dt.date
     df = df.drop_duplicates(["author", "day"])
     steps["one_per_author_day"] = len(df)
+    steps["share_slow_one_per_day"] = float(slow_mask(df).mean())
     df = df.groupby("author", group_keys=False).head(MAX_PER_AUTHOR)
     steps["capped_per_author"] = len(df)
-    steps["authors"] = int(df["author"].nunique())
+    steps["authors"] = int(df.loc[~df["author"].str.startswith("_none_"), "author"].nunique())
+    steps["no_author"] = int(df["author"].str.startswith("_none_").sum())
     df["year"] = df["captured"].dt.year
     start = pd.to_datetime(df["year"].astype(str) + "-01-01")
     days = 365 + df["captured"].dt.is_leap_year.astype(int)
     df["t"] = df["year"] + (df["captured"] - start).dt.total_seconds() / (days * 86400)
-    df["mobile"] = [is_mobile(a, b) for a, b in zip(df["make"], df["model"])]
+    df["device"] = [device(a, b) for a, b in zip(df["make"], df["model"])]
+    df["mobile"] = df["device"] == "phone"
+    df["camera"] = df["device"] == "camera"
     df["ladder"] = df["exposure_s"].map(on_ladder)
     df["long"] = df["exposure_s"] >= 1
     df["slow"] = df["exposure_s"] >= SLOW_S * 0.97   # tolerance for 1/13 written as 0.0769
@@ -160,11 +197,11 @@ def yearly(df):
         "share_on_ladder": g["ladder"].mean(),
         "share_1s_or_longer": g["long"].mean(),
         "share_1s_or_longer_mobile": df[df["mobile"]].groupby("year")["long"].mean(),
-        "share_1s_or_longer_camera": df[~df["mobile"]].groupby("year")["long"].mean(),
+        "share_1s_or_longer_camera": df[df["camera"]].groupby("year")["long"].mean(),
         "share_slow": g["slow"].mean(),
-        "photos_camera": df[~df["mobile"]].groupby("year").size(),
+        "photos_camera": df[df["camera"]].groupby("year").size(),
         "photos_mobile": df[df["mobile"]].groupby("year").size(),
-        "share_slow_camera": df[~df["mobile"]].groupby("year")["slow"].mean(),
+        "share_slow_camera": df[df["camera"]].groupby("year")["slow"].mean(),
         "share_slow_mobile": df[df["mobile"]].groupby("year")["slow"].mean(),
     }).reset_index()
     return out
@@ -179,13 +216,13 @@ def era_stats(df, years):
         "medianExposure": float(sub["exposure_s"].median()),
         "shareMobile": float(sub["mobile"].mean()),
         "shareOnLadder": float(sub["ladder"].mean()),
-        "shareOnLadderCamera": float(sub[~sub["mobile"]]["ladder"].mean()) if (~sub["mobile"]).any() else None,
+        "shareOnLadderCamera": float(sub[sub["camera"]]["ladder"].mean()) if sub["camera"].any() else None,
         "shareOnLadderMobile": float(sub[sub["mobile"]]["ladder"].mean()) if sub["mobile"].any() else None,
         "share1sOrLonger": float(sub["long"].mean()),
         "shareSlow": float(sub["slow"].mean()),
-        "shareSlowCamera": float(sub[~sub["mobile"]]["slow"].mean()) if (~sub["mobile"]).any() else None,
+        "shareSlowCamera": float(sub[sub["camera"]]["slow"].mean()) if sub["camera"].any() else None,
         "shareSlowMobile": float(sub[sub["mobile"]]["slow"].mean()) if sub["mobile"].any() else None,
-        "photosCamera": int((~sub["mobile"]).sum()), "photosMobile": int(sub["mobile"].sum()),
+        "photosCamera": int(sub["camera"].sum()), "photosMobile": int(sub["mobile"].sum()), "photosUnknown": int((sub["device"] == "unknown").sum()),
         "quantiles": {q: float(sub["exposure_s"].quantile(q / 100)) for q in (10, 25, 50, 75, 90, 99)},
     }
 
@@ -226,11 +263,11 @@ def main():
     payload = {"history": history, "photos": None, "examples": [], "models": [], "own": [], "meta": {}}
 
     if RAW.exists():
-        collected_on = args.collected_on or date.fromtimestamp(RAW.stat().st_mtime).isoformat()
+        collected_on = args.collected_on or SAMPLE_CUTOFF   # fixed, so a fresh clone rebuilds the same sample
         df, steps = clean_commons(collected_on)
         PROCESSED.mkdir(parents=True, exist_ok=True)
         keep = ["pageid", "title", "captured", "exposure_s", "exposure_raw", "f_number", "iso", "make",
-                "model", "mobile", "ladder", "license", "artist", "page_url"]
+                "model", "device", "mobile", "ladder", "license", "artist", "page_url"]
         df[keep].to_csv(PROCESSED / "commons_clean.csv", index=False)
         by_year = yearly(df)
         by_year.to_csv(PROCESSED / "commons_by_year.csv", index=False, float_format="%.6g")
@@ -246,7 +283,7 @@ def main():
             "t": [round(float(df.at[i, "t"]), 3) for i in show],
             "e": [round(math.log10(float(df.at[i, "exposure_s"])), 3) for i in show],
             "m": [mi.get(df.at[i, "model"], -1) for i in show],
-            "p": [1 if df.at[i, "mobile"] else 0 for i in show],
+            "p": [{"camera": 0, "phone": 1}.get(df.at[i, "device"], 2) for i in show],   # 2 = unknown device
             "x": [ex_index.get(i, -1) for i in show],
         }
         payload["examples"] = [{

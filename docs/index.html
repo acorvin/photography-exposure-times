@@ -115,7 +115,7 @@ footer.wrap{padding-block:24px 48px;border-top:1px solid var(--rule);font-size:1
 
 <section aria-labelledby="s2">
   <h2 id="s2">Cameras honor the shutter dial</h2>
-  <p id="s2-text">Here the same photographs are split by the kind of device that took them. Camera exposures pile up in bright lines at the fixed speeds marked on a shutter dial, such as 1/60, 1/125 and 1/250, while phone exposures spread out into a haze because a phone is free to pick any value in between.</p>
+  <p id="s2-text">Here the same photographs are split by the kind of device that took them. Camera exposures pile up in bright lines at the standard speeds a camera steps through, the ones on a shutter dial such as 1/60, 1/125 and 1/250 and the third-stops in between, while phone exposures spread out into a haze because a phone is free to pick any value in between.</p>
   <div class="strip-title"><span><b>Dedicated cameras</b></span><span id="s2-cam"></span></div>
   <div class="chart" id="strip-cam" role="img" aria-label="Shutter speeds of photographs taken with dedicated cameras."></div>
   <div class="strip-title"><span><b>Phones and tablets</b></span><span id="s2-mob"></span></div>
@@ -171,6 +171,7 @@ const SLOW = M.slowS || 1/13, SLOW_LABEL = M.slowLabel || '1/13 s';
 
 /* ---------- formatting ---------- */
 const nf = d3.format(',');
+const pct1 = v => v == null ? '–' : (v*100).toFixed(1) + '%';
 const pct = v => v == null ? '–' : (v > 0 && v < 0.01 ? '<1%' : v > 0.99 && v < 1 ? '>99%' : Math.round(v*100) + '%');
 function fmtExposure(s){
   if (s < 1e-5) return (+(s*1e6).toPrecision(2)) + ' µs';
@@ -228,7 +229,7 @@ const hideTip = () => { tip.hidden = true; };
 /* sorted exposures per device, for "x% faster / slower" on hover */
 const sorted = { all: [], camera: [], mobile: [] };
 if (hasPhotos){
-  P.e.forEach((e, i) => { const s = Math.pow(10, e); sorted.all.push(s); (P.p[i] ? sorted.mobile : sorted.camera).push(s); });
+  P.e.forEach((e, i) => { const s = Math.pow(10, e); sorted.all.push(s); if (P.p[i] === 1) sorted.mobile.push(s); else if (P.p[i] === 0) sorted.camera.push(s); });
   Object.values(sorted).forEach(a => a.sort((p, q) => p - q));
 }
 const shareBelow = (arr, s) => arr.length ? d3.bisectLeft(arr, s * 0.99) / arr.length : null;
@@ -259,12 +260,12 @@ function strip(id, which, opts){
     const e = document.createElement('div'); e.className = 'empty'; e.textContent = 'Camera records are being collected.'; host.appendChild(e);
   } else {
     const ctx = cv.getContext('2d'), sp = sprites(which === 'mobile' ? C.mobile : C.camera, dpr);
-    let n = 0; for (let i = 0; i < P.e.length; i++) if (which === 'all' || (which === 'mobile') === !!P.p[i]) n++;
+    let n = 0; for (let i = 0; i < P.e.length; i++) if (which === 'all' || P.p[i] === (which === 'mobile' ? 1 : 0)) n++;
     const alpha = Math.max(0.004, Math.min(0.7, 2.2 * W * band / 1000 / Math.max(1, n)));
     ctx.globalCompositeOperation = 'lighter';
     let beyond = 0;
     for (let i = 0; i < P.e.length; i++){
-      if (which !== 'all' && (which === 'mobile') !== !!P.p[i]) continue;
+      if (which !== 'all' && P.p[i] !== (which === 'mobile' ? 1 : 0)) continue;
       const s = Math.pow(10, P.e[i]);
       if (s > E1 || s < E0){ beyond++; continue; }
       const px = x(s), py = m.t + 6 + JIT[i] * (band - 12);
@@ -432,8 +433,8 @@ function copy(){
   }
   document.getElementById('s1-big').textContent = pct(A.shareSlow);
   document.getElementById('s1-note').innerHTML = `of the ${nf(M.photos)} photographs in the sample were taken at ${esc(SLOW_LABEL)} or slower. The median exposure was <span class="num">${esc(fmtExposure(A.quantiles['50']))}</span>, and nine out of ten were <span class="num">${esc(fmtExposure(A.quantiles['90']))}</span> or faster.`;
-  document.getElementById('s1').textContent = `Only ${pct(A.shareSlow)} of photographs are as slow as most of mine`;
-  document.getElementById('s2-text').innerHTML = `Here the same photographs are split by the kind of device that took them. Camera exposures pile up in bright lines at the fixed speeds marked on a shutter dial, such as 1/60, 1/125 and 1/250, and <span class="num">${pct(A.shareOnLadderCamera)}</span> of them fall exactly on one of those steps. Only <span class="num">${pct(A.shareOnLadderMobile)}</span> of phone exposures do, because a phone is free to pick any value in between, so its photographs spread out into a haze instead. Phones are also about half as likely as cameras to shoot slow.`;
+  document.getElementById('s1').textContent = `Only ${pct(A.shareSlow)} of the photographs I sampled are as slow as most of mine`;
+  document.getElementById('s2-text').innerHTML = `Here the same photographs are split by the kind of device that took them. Camera exposures pile up in bright lines at the standard speeds a camera steps through, the ones on a shutter dial such as 1/60, 1/125 and 1/250 and the third-stops in between, and <span class="num">${pct(A.shareOnLadderCamera)}</span> of them sit on one of those steps. Only <span class="num">${pct(A.shareOnLadderMobile)}</span> of phone exposures do, because a phone is free to pick any value in between, so its photographs spread out into a haze instead. Phones are also about half as likely as cameras to shoot slow, although, as I explain below, a phone’s file can understate how long it took.`;
   const E3 = M.eras || {};
   if (E3.p1 && E3.p3) document.getElementById('s3-text').innerHTML = `This chart shows the share of each year’s photographs that were taken at ${esc(SLOW_LABEL)} or slower. Between ${E3.p1.years[0]} and ${E3.p1.years[1]}, <span class="num">${pct(E3.p1.shareSlow)}</span> of the photographs in the sample were that slow, and between ${E3.p3.years[0]} and ${E3.p3.years[1]} the figure was <span class="num">${pct(E3.p3.shareSlow)}</span>. Phones grew from ${pct(E3.p1.shareMobile)} to ${pct(E3.p3.shareMobile)} of the sample over the same period, which accounts for part of the drop, but cameras on their own also fell from ${pct(E3.p1.shareSlowCamera)} to ${pct(E3.p3.shareSlowCamera)}. I’ve left out any year with fewer than ${nf(M.minYearCount || 200)} photographs from a given kind of device.`;
   document.getElementById('s2-cam').innerHTML = `<span class="num">${pct(A.shareSlowCamera)}</span> at ${esc(SLOW_LABEL)} or slower · ${nf(A.photosCamera)} photos`;
@@ -443,10 +444,10 @@ function copy(){
 function method(){
   const cl = M.cleaning || {};
   document.getElementById('method').innerHTML = hasPhotos ? `
-    <p>All of the photographs come from Wikimedia Commons, a public archive of freely licensed images. I used a Python script that asked the Commons API for files at random and kept the ones whose camera data (EXIF) recorded both the date the photograph was taken and its shutter speed, which gave me ${nf(cl.collected)} photographs. I didn’t look at the images themselves, only the camera data. The script then dropped anything dated before 1990 or in the future, along with shutter speeds shorter than a millionth of a second or longer than a year, and that left ${nf(cl.plausible_exposure)}.</p>
-    <p>A few archives upload to Commons in bulk, and NASA alone had thousands of astronaut photographs of Earth taken from the International Space Station, which made up close to 40% of the slow exposures. So that no single source could tip the numbers, I kept one photograph per author per day and no more than 50 per author, which leaves ${nf(M.photos)} photographs by ${nf(cl.authors)} people. Setting that limit at 20 or at 100 gives the same results. The charts draw every one of them that falls between 1/8000 of a second and 30 seconds and give a count of the few outside that range, and every percentage on the page is based on all ${nf(M.photos)}.</p>
-    <p>When I say slow, I mean ${esc(SLOW_LABEL)} or longer${OWN.length ? `, and ${OWN.filter(o => Math.pow(10, o.e) >= SLOW * 0.97).length} of the ${OWN.length} photographs of mine on this page are at least that slow` : ''}.</p>
-    <p>Commons is not a fair picture of all photography. People upload to it on purpose, so it probably holds more travel, documentary and enthusiast work than the average camera roll, and even in recent years phones make up only about a third of the sample. It also only includes people who leave their camera data in place. I separated phones from cameras using the maker and model written into each file, and because a few companies make both, that split is close but not exact. Camera clocks are also sometimes set wrong, so a photograph can end up in the wrong year.</p>
+    <p>All of the photographs come from Wikimedia Commons, a public archive of freely licensed images. I used a Python script that asked the Commons API for files at random and kept the ones whose camera data (EXIF) recorded both the date the photograph was taken and its shutter speed, which gave me ${nf(cl.collected)} photographs. I didn’t look at the images themselves, only the camera data. The script then dropped anything dated before 1990 or in the future, along with shutter speeds of a millionth of a second or less or longer than a year, and that left ${nf(cl.plausible_exposure)}. I also removed ${nf(cl.plausible_exposure - cl.not_scanner)} files that came from film scanners rather than cameras, which left ${nf(cl.not_scanner)}.</p>
+    <p>A few archives upload to Commons in bulk, and NASA alone had ${nf(cl.nasa_rows)} astronaut photographs of Earth, which made up ${pct(cl.nasa_share_of_slow)} of the slow exposures. So that no single source could tip the numbers, I kept one photograph per author per day and no more than 50 per author, which leaves ${nf(M.photos)} photographs by ${nf(cl.authors)} named authors, plus ${nf(cl.no_author)} that don’t name one. Setting the limit at 20 or at 100 photographs per author instead of 50, or changing the random order in which photographs are kept, moves the figures on this page by about a percentage point at most. Keeping one photograph per author per day makes the bigger difference: without either limit, ${pct1(cl.share_slow_before_limits)} of the photographs would count as slow, and with only the daily limit the figure would be ${pct1(cl.share_slow_one_per_day)}, against ${pct1(A.shareSlow)} with both. The charts draw every one of them that falls between 1/8000 of a second and 30 seconds and give a count of the few outside that range, and every percentage on the page comes from the full sample.</p>
+    <p>When I say slow, I mean ${esc(SLOW_LABEL)} or longer${OWN.length ? `, and ${OWN.filter(o => Math.pow(10, o.e) >= SLOW * 0.97).length} of the ${OWN.length} photographs of mine on this page are at least that slow` : ''}. An exposure counts as sitting on a dial step when it is within 1% of a standard full or third stop, and when I compare one of my photographs with the sample, anything within 1% of its shutter speed counts as the same speed rather than a faster one.</p>
+    <p>Commons is not a fair picture of all photography. People upload to it on purpose, so it probably holds more travel, documentary and enthusiast work than the average camera roll, and even in recent years phones make up only about a third of the sample. It also only includes people who leave their camera data in place. I separated phones from cameras using the maker and model written into each file, and any file that names a maker or model but isn’t identified as a phone counts as a camera. Because a few companies make both, that split is close but not exact. Another ${nf(A.photosUnknown)} files record neither a maker nor a model, so they count toward the overall figures but not toward either side. Camera clocks are also sometimes set wrong, so a photograph can end up in the wrong year.</p>
     <p>Phones may also under-report how long they take. In Night mode a phone combines several frames into one picture, and the file can record the shutter speed of a single frame rather than the whole capture. On my iPhone 13, a low-light photograph takes about two seconds while I hold the phone still, yet the file for <i>Webb</i>, a night photograph taken with that phone, says 1/2 s. Apple itself only says that a Night mode photograph “might take several seconds.”</p>` : '<p>The sample is still being collected.</p>';
   if (hasPhotos) document.getElementById('credit').innerHTML =
     `Photographs © Alex Corvin. The data comes from ${nf(M.photos)} photographs on Wikimedia Commons and from the museum, archive and maker sources listed above, and the code and data are on GitHub at <a href="https://github.com/acorvin/photography-exposure-times">github.com/acorvin/photography-exposure-times</a>.`;

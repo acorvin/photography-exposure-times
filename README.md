@@ -15,11 +15,12 @@ Live page: https://acorvin.github.io/photography-exposure-times/
 ## Method
 
 - **Sampling.** `scripts/collect_commons.py` draws random files from the Commons File namespace and keeps those whose EXIF holds both `DateTimeOriginal` and `ExposureTime`.
-- **Cleaning.** Duplicates removed; capture dates before 1990 or after the collection date dropped; exposures outside 1 microsecond to 1 year dropped.
-- **One photographer, one voice.** Commons holds bulk uploads from a few archives (for example, thousands of NASA astronaut photographs of Earth). The sample keeps one photograph per author per day and at most 50 per author. Caps of 20 and 100 give the same results to within a tenth of a percentage point.
+- **Cleaning.** Duplicates removed; capture dates before 1990 or after the download (`SAMPLE_CUTOFF` in `build.py`) dropped; exposures of 1 microsecond or less, or longer than 1 year, dropped; files from film scanners dropped.
+- **One photographer, one voice.** Commons holds bulk uploads from a few archives (for example, thousands of NASA astronaut photographs of Earth). The sample keeps one photograph per author per day and at most 50 per author. Author names are compared ignoring case and spacing, NASA's Earth Science and Remote Sensing Unit is merged across its two names, and files with no author are not grouped together. Caps of 20 or 100 move the published figures by about one percentage point at most, and the overall slow share by less than a tenth of a point.
 - **Slow** means 1/13 s or longer.
-- **Phones and tablets** are identified from the maker and model name (Apple, Samsung, Google, Xiaomi, Sony Ericsson and other phone makers, or a model name such as iPhone or Galaxy). Sony, Samsung and Kyocera also made cameras, so their files count only when the model name looks like a phone (an Xperia, or a Samsung SM-, GT- or Galaxy model).
+- **Phones and tablets** are identified from the maker and model name (Apple, Samsung, Google, Xiaomi, Sony Ericsson and other phone makers, or a model name such as iPhone or Galaxy). Sony, Samsung and Kyocera also made cameras, so their files count only when the model name looks like a phone (an Xperia, or a Samsung SM-, GT- or Galaxy model). Any other file that names a maker or model counts as a camera; files with neither count in the overall figures only.
 - **Shutter-speed steps.** An exposure counts as "on the ladder" when it is within 1% of a full- or third-stop speed (1/8000 s to 30 s).
+- **Comparing my photographs.** Each one's figure is the share of the sample with a shorter exposure; anything within 1% of its speed counts as the same speed.
 - **Historical bounds.** Where a source gives words rather than numbers ("several days", "a fraction of a second"), the plotted bound and the reason are recorded in the `bounds_note` column.
 
 ## Limitations
@@ -27,7 +28,7 @@ Live page: https://acorvin.github.io/photography-exposure-times/
 - Commons is a sample of what people upload, not of all photography.
 - Capture dates come from camera clocks, some of which were never set.
 - Phones that merge several frames may record one frame's exposure, not the total capture time.
-- Film records no exposure metadata, so 1827–1995 shows documented exposures only.
+- Film records no exposure metadata, so the years before digital cameras show documented exposures only.
 
 ## Repository
 
