@@ -4,6 +4,20 @@
 
 Live page: https://acorvin.github.io/photography-exposure-times/
 
+## The problem
+
+I usually leave my shutter open for about a tenth of a second, and I wanted to know how unusual that is. Camera metadata can answer it, but public photo collections are uneven: a few archives upload in bulk, phones choose shutter speeds differently from cameras, and exposure times from early photography exist only in museum and archive records.
+
+## What I did
+
+I drew a random sample of Wikimedia Commons files that have both a capture date and an exposure time, removed duplicates, implausible values and film-scanner files, and kept at most one photograph per author per day and 50 per author. I separated phones from cameras by maker and model, and added documented exposures from 1827 to 2019 with their sources. The interactive chart compares my photographs with the sample on a scale from 1/8000 of a second to 30 seconds.
+
+## What it found
+
+- Only 4% of the photographs in the sample are as slow as most of mine.
+- 93% of camera exposures land on a standard shutter step, compared with 33% for phones.
+- Slow photographs have become less common over time, and the earliest documented exposures took hours.
+
 ## Data
 
 | Layer | Source | Notes |
